@@ -9,16 +9,14 @@ const getState = ({ getStore, getActions, setStore }) => {
                 try {
                     const response = await fetch("https://playground.4geeks.com/apis/fake/contact/agenda/alondragerke");
                     const contactData = await response.json();
-            
-                    console.log("Contactos obtenidos:", contactData);
-            
-                    setStore(prevStore => ({
+                        
+                    const prevStore = getStore();
+
+                    setStore({
                         ...prevStore,
-                        contacts: [...prevStore.contacts, ...contactData],  // Concatenar nuevos contactos al estado existente
-                    }));
-            
-                    console.log("Contacto añadido al estado:", contactData);
-            
+                        contacts: contactData,
+                    });
+                        
                     return contactData;
                 } catch (error) {
                     console.error("Error fetching contacts:", error);
@@ -27,7 +25,6 @@ const getState = ({ getStore, getActions, setStore }) => {
             },
             createContact: async (newContact) => {
                 try {
-                    // Validar los datos antes de enviar la solicitud
                     if (!newContact.full_name || !newContact.email || !newContact.address || !newContact.phone) {
                         console.error("Por favor, complete todos los campos antes de crear el contacto.");
                         return;
@@ -53,95 +50,81 @@ const getState = ({ getStore, getActions, setStore }) => {
                     }
         
                     const data = await response.json();
-
-                    // Log para verificar que se está recibiendo el nuevo contacto correctamente
-                    console.log("Nuevo contacto creado:", data);
                     
                     setStore(prevStore => ({
                         ...prevStore,
-                        contacts: data,
+                        contacts: [...prevStore.contacts, data],
                     }));
                 } catch (error) {
                     console.error("Error creando el contacto:", error);
                 }
             },
             
-            updateContact: async (updatedContact) => {
+            updateContact: async (id, contactData) => {
                 try {
-                    const response = await fetch(`https://playground.4geeks.com/apis/fake/contact/${updatedContact.id}`, {
+                    const response = await fetch(`https://playground.4geeks.com/apis/fake/contact/${id}`, {
                         method: 'PUT',
-                        body: JSON.stringify(updatedContact),
                         headers: {
-                            'Content-Type': 'application/json'
-                        }
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            "full_name": contactData.full_name,
+                            "email": contactData.email,
+                            "agenda_slug": "alondragerke",
+                            "address": contactData.address,
+                            "phone": contactData.phone,
+                        }),
                     });
-        
+            
                     if (!response.ok) {
-                        console.error(`Error actualizando el contacto con ID ${updatedContact.id}. Estado: ${response.status}`);
-                        return;
+                        throw new Error('Error updating contact');
                     }
-        
-                    // Extraer datos de la respuesta
-                    const updatedContactData = await response.json();
-                    console.log("Datos del contacto actualizado:", updatedContactData);
-        
-                    // Actualizar el estado
-                    setStore((prevStore) => {
-                        const updatedContacts = prevStore.contacts.map(contact =>
-                            contact.id === updatedContactData.id ? updatedContactData : contact
-                        );
-                        return {
-                            ...prevStore,
-                            contacts: updatedContacts,
-                        };
-                    });
+            
+                    setStore(prevStore => ({
+                        ...prevStore,
+                        contacts: prevStore.contacts.map(contact => (contact.id === id ? { ...contact, ...contactData } : contact)),
+                    }));            
                 } catch (error) {
-                    console.error("Error actualizando el contacto: ", error);
+                    console.error('Error updating contact:', error);
                 }
             },
 
             deleteContact: async (id) => {
                 try {
-                    setStore(prevStore => ({
-                        ...prevStore,
-                        contactToDelete: id
-                    }));
+                    if (id !== undefined && id !== null) {
+                        confirmDeleteContact(id);
+                    } else {
+                        console.error("Error: No contact selected for deletion.");
+                    }
                 } catch (error) {
                     console.error("Error preparing to delete contact: ", error);
                 }
             },
-            confirmDeleteContact: async () => {
+            confirmDeleteContact: async (id) => {
                 try {
-                    const id = getStore().contactToDelete;
-            
-                    // Realizar la eliminación en la API
-                    const response = await fetch(`https://playground.4geeks.com/apis/fake/contact/${id}`, {
-                        method: 'DELETE',
-                    });
-            
-                    if (!response.ok) {
-                        console.error(`Error deleting contact. Status: ${response.status}`);
-                        return;
-                    }
-            
-                    // Actualizar el estado de manera segura
-                    setStore(prevStore => {
-                        const newContacts = prevStore.contacts.filter(contact => contact.id !== id);
-                        return {
+                    if (id !== null) {
+                        const response = await fetch(`https://playground.4geeks.com/apis/fake/contact/${id}`, {
+                            method: 'DELETE',
+                        });
+        
+                        if (!response.ok) {
+                            console.error(`Error deleting contact. Status: ${response.status}`);
+                            return;
+                        }
+        
+                        setStore(prevStore => ({
                             ...prevStore,
-                            contacts: newContacts,
+                            contacts: prevStore.contacts.filter(contact => contact.id !== id),
                             contactToDelete: null,
-                        };
-                    });
+                        }));
+                    } else {
+                        console.error("Error: No contact selected for deletion.");
+                    }
                 } catch (error) {
                     console.error("Error deleting contact: ", error);
                 }
-            },            
-            cancelDeleteContact: () => {
-                setStore({
-                    contactToDelete: null
-                });
             },
+        
         }
     };
 };

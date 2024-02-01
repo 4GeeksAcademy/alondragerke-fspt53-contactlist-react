@@ -1,0 +1,16 @@
+.yoga404 {
+    margin-top: 75px;
+    height: 500px;
+    width: 700px;
+}
+.page404 {
+    display: flex;
+    flex-direction: column;
+    justify-content: center; 
+    align-items: center;
+}
+
+.message404 {
+    font-size: 30px;
+    margin-top: 20px;
+}

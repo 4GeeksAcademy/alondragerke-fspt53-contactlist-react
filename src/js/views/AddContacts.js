@@ -2,7 +2,6 @@ import React, { useContext, useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Context } from "/workspaces/alondragerke-fspt53-contactlist-react/src/js/store/appContext.js";
 import "../../styles/home.css";
-
 import Form from 'react-bootstrap/Form';
 import { Container } from "react-bootstrap";
 import InputGroup from 'react-bootstrap/InputGroup';
@@ -20,19 +19,33 @@ const AddContacts = () => {
         phone: "",
     });
 
-    const loadContactData = (id) => {
-        const existingContact = store.contacts.find(contact => contact.id === id) || {};
-        setContactData({
-            full_name: existingContact.full_name || "",
-            email: existingContact.email || "",
-            address: existingContact.address || "",
-            id: existingContact.id || "",
-            phone: existingContact.phone || "",
-        });
+    const loadContactData = async (id) => {
+        try {
+            const response = await fetch(`https://playground.4geeks.com/apis/fake/contact/${id}`);
+            
+            if (!response.ok) {
+                console.error(`Error fetching contact data for ID ${id}. Status: ${response.status}`);
+                return;
+            }
+    
+            const existingContact = await response.json();
+        
+            setContactData((prevContactData) => ({
+                ...prevContactData,
+                full_name: existingContact.full_name || prevContactData.full_name,
+                email: existingContact.email || prevContactData.email,
+                address: existingContact.address || prevContactData.address,
+                id: existingContact.id || prevContactData.id,
+                phone: existingContact.phone || prevContactData.phone,
+            }));
+        } catch (error) {
+            console.error("Error fetching contact data:", error);
+        }
     };
 
     useEffect(() => {
         if (id) {
+            console.log("Loading contact with ID:", id);
             loadContactData(id);
         }
     }, [id, store.contacts]);
